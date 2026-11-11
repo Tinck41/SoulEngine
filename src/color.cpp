@@ -12,6 +12,10 @@ Color Color::from_uint(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint
 	return { r, g, b, a };
 }
 
+Color Color::from_float(float color[3]) {
+	return from_float(color[0], color[1], color[2], 1.f);
+}
+
 Color Color::from_float(float r, float g, float b) {
 	return from_float(r, g, b, 1.f);
 }

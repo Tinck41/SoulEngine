@@ -11,6 +11,7 @@ namespace se {
 		static Color from_uint(std::uint8_t r, std::uint8_t g, std::uint8_t b);
 		static Color from_uint(std::uint8_t r, std::uint8_t g, std::uint8_t b, std::uint8_t a);
 
+		static Color from_float(float color[3]);
 		static Color from_float(float r, float g, float b);
 		static Color from_float(float r, float g, float b, float a);
 
