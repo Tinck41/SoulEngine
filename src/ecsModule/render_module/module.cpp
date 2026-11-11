@@ -179,6 +179,7 @@ void render(flecs::iter& it) {
 			SDL_PushGPUDebugGroup(command_buffer, std::format("camera: {}", camera_entity.name().size() != 0 ? std::string(camera_entity.name()) : std::to_string(camera_entity.id())).c_str());
 
 			auto default_uniform = DefaultUniform{
+				.view_position = transform.translation,
 				.delta_time = it.delta_time(),
 			};
 

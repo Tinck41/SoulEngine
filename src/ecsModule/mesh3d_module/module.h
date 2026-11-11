@@ -28,6 +28,8 @@ namespace se {
 
 	struct Mesh3dInstance {
 		glm::mat4 model;
+		uint32_t flags = 0;
+	    uint32_t padding[3];
 	};
 
 	using ExtractedMeshes3d = std::vector<ExtractedMesh3d>;
@@ -35,6 +37,11 @@ namespace se {
 
 	struct Mesh3dModule {
 		Mesh3dModule(flecs::world& world);
+	};
+
+	enum class Mesh3dShaderFlags : uint32_t {
+		None = 0,
+		Textured = 1 << 0,
 	};
 
 	se::Material create_mesh3d_material(flecs::world& world);

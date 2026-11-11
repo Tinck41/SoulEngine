@@ -100,6 +100,12 @@ Mesh3dModule::Mesh3dModule(flecs::world& world) {
 							vertex.uv.y = 1.f - attrib.texcoords[2 * idx.texcoord_index + 1];
 						}
 
+						if (idx.normal_index > 0) {
+							vertex.normal.x = attrib.normals[3 * idx.normal_index + 0];
+							vertex.normal.y = attrib.normals[3 * idx.normal_index + 1];
+							vertex.normal.z = attrib.normals[3 * idx.normal_index + 2];
+						}
+
 						indices.push_back(vertices.size());
 						vertices.push_back(vertex);
 					}
@@ -381,7 +387,7 @@ se::Material se::create_mesh3d_material(flecs::world& world) {
 		}
 	};
 
-	std::array<SDL_GPUVertexAttribute, 3> vertex_attrs{
+	std::array<SDL_GPUVertexAttribute, 4> vertex_attrs{
 		SDL_GPUVertexAttribute{
 			.location = 0,
 			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3,
@@ -396,6 +402,11 @@ se::Material se::create_mesh3d_material(flecs::world& world) {
 			.location = 2,
 			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
 			.offset = offsetof(Vertex3d, uv),
+		},
+		SDL_GPUVertexAttribute{
+			.location = 3,
+			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3,
+			.offset = offsetof(Vertex3d, normal),
 		},
 	};
 
@@ -444,6 +455,7 @@ se::Material se::create_mesh3d_material(flecs::world& world) {
 		.pipeline = pipeline,
 		.sampler = sampler,
 		.vertex_uniforms = { world.id<DefaultUniform>() },
+		.fragment_uniforms = { world.id<DefaultUniform>() },
 	};
 }
 
@@ -546,7 +558,7 @@ se::RenderPhaseExtractor se::create_mesh3d_extractor(flecs::world& world, flecs:
 						.indices = mesh.indices,
 						.vertices_size = mesh.vertices_size,
 						.indices_size = mesh.indices_size,
-						.texture = &mesh.texture->get_gpu_texture(),
+						.texture = mesh.texture ? &mesh.texture->get_gpu_texture() : nullptr,
 						.transform = transform.matrix,
 						.color = mesh.color
 					});
@@ -622,12 +634,19 @@ se::RenderPhaseUploader se::create_mesh3d_uploader() {
 				phase_items[current_batch_index].batch_size += 1;
 				phase_items[current_batch_index].num_instances += 1;
 
-				instances[instances_index++].model = mesh.transform;
+				instances[instances_index].flags |= static_cast<uint32_t>((bool)mesh.texture ? Mesh3dShaderFlags::Textured : Mesh3dShaderFlags::None);
+				instances[instances_index].model = mesh.transform;
+
+				++instances_index;
 			}
 
 			extracted_meshes.clear();
 
 			SDL_UnmapGPUTransferBuffer(device, context.transfer_buffer);
+
+			if (instances_index == 0) {
+				return;
+			}
 
 			SDL_GPUTransferBufferLocation instances_transfer_buffer_location {
 				.transfer_buffer = context.transfer_buffer,
