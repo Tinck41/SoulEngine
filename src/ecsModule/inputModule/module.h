@@ -121,6 +121,7 @@ namespace se {
 		KeyState left;
 		KeyState right;
 		glm::vec2 position;
+		glm::vec2 wheel;
 		bool moved = false;
 	};
 

@@ -199,6 +199,7 @@ InputModule::InputModule(flecs::world& world) {
 				state.released = false;
 			}
 
+			input.mouse.wheel = glm::vec2(0.f);
 			input.mouse.left.pressed = false;
 			input.mouse.left.released = false;
 			input.mouse.right.pressed = false;
@@ -304,6 +305,10 @@ InputModule::InputModule(flecs::world& world) {
 						input.mouse.right.remain = false;
 						input.mouse.right.released = true;
 					}
+				}
+				else if (event.type == SDL_EVENT_MOUSE_WHEEL) {
+					input.mouse.wheel.x = event.wheel.x;
+					input.mouse.wheel.y = event.wheel.y;
 				}
 			}
 		});
