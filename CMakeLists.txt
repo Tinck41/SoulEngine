@@ -128,6 +128,8 @@ add_library(${PROJECT_NAME} STATIC
 	src/file.cpp
 	src/texture_atlas.h
 	src/utils/visit.h
+	src/debug/profiler.h
+	src/debug/profiler.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/vendor/glaze/include)

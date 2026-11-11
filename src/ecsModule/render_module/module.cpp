@@ -1,5 +1,6 @@
 #include "module.h"
 
+#include "debug/profiler.h"
 #include "ecsModule/cameraModule/module.h"
 #include "ecsModule/common.h"
 #include "ecsModule/render_module/default_uniform.h"
@@ -98,14 +99,18 @@ void extract(flecs::iter& it) {
 }
 
 void render(flecs::iter& it) {
+	push_profile_scope("render");
 	auto world = it.world();
 
 	const auto& device = world.get<RenderDevice>();
 	auto& stats = world.get_mut<RenderStats>();
+	push_profile_scope("acquire gpu command buffer");
 	auto command_buffer = SDL_AcquireGPUCommandBuffer(device.gpu);
+	pop_profile_scope();
 
 	stats.draw_calls = 0;
 
+	push_profile_scope("acquire swapchain_texture");
 	world.each([&command_buffer](Window& window) {
 		const auto flags = SDL_GetWindowFlags(window.handle);
 
@@ -114,7 +119,9 @@ void render(flecs::iter& it) {
 		//	return;
 		//}
 
+		push_profile_scope("SDL_AcquireGPUSwapchainTexture()");
 		SDL_AcquireGPUSwapchainTexture(command_buffer, window.handle, &window.swapchain_texture, nullptr, nullptr);
+		pop_profile_scope();
 
 		if (!window.swapchain_texture) {
 			return;
@@ -127,9 +134,14 @@ void render(flecs::iter& it) {
 			.store_op = SDL_GPU_STOREOP_STORE
 		};
 
+		push_profile_scope("clear pass");
 		auto clear_pass =  SDL_BeginGPURenderPass(command_buffer, &color_target, 1, nullptr);
 		SDL_EndGPURenderPass(clear_pass);
+		pop_profile_scope();
 	});
+	pop_profile_scope();
+
+	push_profile_scope("render loop");
 
 	while(it.next()) {
 		auto camera_field = it.field<Camera>(0);
@@ -187,6 +199,8 @@ void render(flecs::iter& it) {
 				auto phase_entity = world.entity(phase);
 				auto& render_phase = phase_entity.get_mut<RenderPhase>();
 
+				push_profile_scope(phase_entity.name().c_str());
+
 				default_uniform.view_proj = render_phase.extract_view_callback
 					? render_phase.extract_view_callback(camera, transform)
 					: extract_view_default(camera, transform);
@@ -209,6 +223,8 @@ void render(flecs::iter& it) {
 				SDL_PopGPUDebugGroup(command_buffer);
 
 				render_phase.items.clear();
+
+				pop_profile_scope();
 			}
 
 			SDL_EndGPURenderPass(render_pass);
@@ -216,7 +232,12 @@ void render(flecs::iter& it) {
 		}
 	}
 
+	pop_profile_scope();
+
+	push_profile_scope("submit gpu commands");
 	assert(SDL_SubmitGPUCommandBuffer(command_buffer) && SDL_GetError());
+	pop_profile_scope();
+	pop_profile_scope();
 }
 
 RenderModule::RenderModule(flecs::world& world) {
