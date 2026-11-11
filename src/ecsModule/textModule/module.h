@@ -25,6 +25,7 @@ namespace se {
 
 	struct TextComputed {
 		std::string computed_text;
+		glm::vec2 alignment_offset;
 	};
 
 	struct TextFont {
@@ -32,6 +33,7 @@ namespace se {
 		float size;
 		float font_scale;
 		glm::ivec2 font_dpi;
+		glm::vec2 alignment;
 	};
 
 	struct TextColor : public Color {
@@ -52,6 +54,7 @@ namespace se {
 
 	struct TextData {
 		glm::ivec2 size;
+		glm::vec2 alignment_offset;
 		float min_width;
 
 		TTF_Text* ttf_data;
