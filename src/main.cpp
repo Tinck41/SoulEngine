@@ -132,20 +132,20 @@ void default_init(flecs::world& world) {
 			node_helper.add<ExtractedNodes>();
 			text_node_helper.add<ExtractedTextNodes>();
 
-			node_helper.set(create_node_context(world));
+			node_helper.set(create_node_context_new(world));
 			text_node_helper.set(create_text_context(world));
 
 			transparent_ui.set(create_default_sorter());
 			transparent_ui.set(create_default_renderer());
 
-			node_helper.set(create_node_material(world));
+			node_helper.set(create_node_material_new(world));
 			text_node_helper.set(create_text_material(world));
 
 			image_extractor.set(create_image_node_extractor(world, node_helper));
 			color_extractor.set(create_color_node_extractor(world, node_helper));
 			text_node_helper.set(create_text_node_extractor(world, text_node_helper));
 
-			node_helper.set(create_node_uploader());
+			node_helper.set(create_node_uploader_new());
 			text_node_helper.set(create_text_node_uploader());
 
 			transparent_ui.set(RenderPhase{

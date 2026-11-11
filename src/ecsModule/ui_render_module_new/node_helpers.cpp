@@ -13,6 +13,113 @@ using namespace se;
 
 #define NODE_MAX_ 10'000 // ????
 
+Material se::create_node_material_new(flecs::world& world) {
+	auto& device = world.get<RenderDevice>();
+
+	auto vert_shader = load_shader(*device.gpu, "assets/shaders/out/ui_2.vert.msl", 1, 0, 1);
+	auto frag_shader = load_shader(*device.gpu, "assets/shaders/out/ui_2.frag.msl", 0, 1);
+
+	SDL_GPUColorTargetDescription color_target_description{
+		.format = SDL_GetGPUSwapchainTextureFormat(device.gpu, world.get<WindowModule>().main_window),
+		.blend_state = {
+			.src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA,
+			.dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+			.color_blend_op = SDL_GPU_BLENDOP_ADD,
+			.src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA,
+			.dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+			.alpha_blend_op = SDL_GPU_BLENDOP_ADD,
+			.enable_blend = true,
+		}
+	};
+
+	std::array<SDL_GPUVertexAttribute, 12> vertex_attrs{
+		SDL_GPUVertexAttribute{
+			.location = 0,
+			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3,
+			.offset = offsetof(UiVertexNew, position),
+		},
+		SDL_GPUVertexAttribute{
+			.location = 1,
+			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT,
+			.offset = offsetof(UiVertexNew, rotation),
+		},
+		SDL_GPUVertexAttribute{
+			.location = 2,
+			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
+			.offset = offsetof(UiVertexNew, scale),
+		},
+		SDL_GPUVertexAttribute{
+			.location = 3,
+			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
+			.offset = offsetof(UiVertexNew, padding_1),
+		},
+		SDL_GPUVertexAttribute{
+			.location = 4,
+			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
+			.offset = offsetof(UiVertexNew, tex_pos),
+		},
+		SDL_GPUVertexAttribute{
+			.location = 5,
+			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
+			.offset = offsetof(UiVertexNew, tex_size),
+		},
+		SDL_GPUVertexAttribute{
+			.location = 6,
+			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+			.offset = offsetof(UiVertexNew, color),
+		},
+		SDL_GPUVertexAttribute{
+			.location = 7,
+			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4,
+			.offset = offsetof(UiVertexNew, border_color),
+		},
+		SDL_GPUVertexAttribute{
+			.location = 8,
+			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT,
+			.offset = offsetof(UiVertexNew, border_width),
+		},
+		SDL_GPUVertexAttribute{
+			.location = 9,
+			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT,
+			.offset = offsetof(UiVertexNew, border_radius),
+		},
+		SDL_GPUVertexAttribute{
+			.location = 10,
+			.format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2,
+			.offset = offsetof(UiVertexNew, padding_2),
+		},
+		SDL_GPUVertexAttribute{
+			.location = 11,
+			.format = SDL_GPU_VERTEXELEMENTFORMAT_UINT4,
+			.offset = offsetof(UiVertexNew, flags),
+		},
+	};
+
+	SDL_GPUGraphicsPipelineCreateInfo pipeline_create_info{
+		.vertex_shader = vert_shader,
+		.fragment_shader = frag_shader,
+		.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST,
+		.target_info = {
+			.color_target_descriptions = &color_target_description,
+			.num_color_targets = 1,
+		}
+	};
+
+	SDL_GPUSamplerCreateInfo sampler_create_info{};
+
+	auto sampler = SDL_CreateGPUSampler(device.gpu, &sampler_create_info);
+	auto pipeline = SDL_CreateGPUGraphicsPipeline(device.gpu, &pipeline_create_info);
+
+	SDL_ReleaseGPUShader(device.gpu, vert_shader);
+	SDL_ReleaseGPUShader(device.gpu, frag_shader);
+
+	return {
+		.pipeline = pipeline,
+		.sampler = sampler,
+		.vertex_uniforms = { world.id<DefaultUniform>() },
+	};
+}
+
 Material se::create_node_material(flecs::world& world) {
 	auto& device = world.get<RenderDevice>();
 
@@ -122,6 +229,32 @@ Material se::create_node_material(flecs::world& world) {
 		.pipeline = pipeline,
 		.sampler = sampler,
 		.vertex_uniforms = { world.id<DefaultUniform>() },
+	};
+}
+
+PhaseContext se::create_node_context_new(flecs::world& world) {
+	auto& device = world.get<RenderDevice>();
+
+	const auto verticies_byte_szie = NODE_MAX_ * sizeof(UiVertexNew);
+
+	SDL_GPUTransferBufferCreateInfo transfer_buffer_create_info{
+		.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+		.size = verticies_byte_szie,
+	};
+
+	auto transfer_buffer = SDL_CreateGPUTransferBuffer(device.gpu, &transfer_buffer_create_info);
+
+	SDL_GPUBufferCreateInfo vertex_buffer_create_info{
+		.usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
+		.size = verticies_byte_szie,
+	};
+
+	auto vertex_buffer = SDL_CreateGPUBuffer(device.gpu, &vertex_buffer_create_info);
+
+	return {
+		.storage_buffer = vertex_buffer,
+		.transfer_buffer = transfer_buffer,
+		.index_element_size = SDL_GPU_INDEXELEMENTSIZE_16BIT,
 	};
 }
 
@@ -359,6 +492,87 @@ RenderPhaseExtractor se::create_color_node_extractor(flecs::world& world, flecs:
 	};
 }
 
+RenderPhaseUploader se::create_node_uploader_new() {
+	return RenderPhaseUploader{
+		.callback = [](flecs::world& world, flecs::entity& render_phase, flecs::entity& uploader, SDL_GPUDevice* gpu, SDL_GPUCopyPass* copy_pass) {
+			auto& extracted_nodes = uploader.get_mut<ExtractedNodes>();
+			auto& context = uploader.get_mut<PhaseContext>();
+			auto& phase_items = render_phase.get_mut<RenderPhase>().items;
+
+			auto instances = static_cast<UiVertexNew*>(SDL_MapGPUTransferBuffer(gpu ,context.transfer_buffer, true));
+
+			uint32_t current_instance = 0;
+
+			size_t current_batch_index = 0;
+
+			for (size_t i = 0; i < phase_items.size(); ++i) {
+				const auto& data = phase_items[i];
+
+				if (data.context_entity != uploader || data.extracted_index >= extracted_nodes.size() || extracted_nodes[data.extracted_index].entity != data.entity) {
+					current_batch_index = i + 1;
+
+					continue;
+				}
+
+				const auto& ui_node = extracted_nodes[data.extracted_index];
+
+				if (phase_items[current_batch_index].num_instances == 0 || phase_items[current_batch_index].texture != ui_node.texture || phase_items[current_batch_index].scissor != ui_node.scissor) {
+					current_batch_index = i;
+
+					phase_items[current_batch_index].texture = ui_node.texture;
+					phase_items[current_batch_index].num_instances = 1;
+					phase_items[current_batch_index].vertex_offset = current_instance * 6;
+				}
+
+				std::uint32_t flags = 0;
+
+				if (ui_node.texture) {
+					flags |= static_cast<std::uint32_t>(ShaderFlags::Textured);
+				}
+
+				instances[current_instance] = UiVertexNew{
+					.position = glm::vec3(ui_node.translation, 0.f),
+					.rotation = ui_node.rotation.x,
+					.scale = ui_node.size, 
+					.tex_pos = glm::vec2(0.f),
+					.tex_size = glm::vec2(1.f),
+					.color = ui_node.color,
+					.border_color = ui_node.border_color,
+					.border_width = ui_node.border_width,
+					.border_radius = ui_node.border_radius,
+					.flags = flags,
+				};
+
+				++current_instance;
+				++phase_items[current_batch_index].batch_size;
+
+				phase_items[current_batch_index].num_indices += 6;
+			}
+
+			extracted_nodes.clear();
+
+			SDL_UnmapGPUTransferBuffer(gpu, context.transfer_buffer);
+
+			if (current_instance == 0) {
+				return;
+			}
+
+			const auto buffer_location = SDL_GPUTransferBufferLocation{
+				.transfer_buffer = context.transfer_buffer,
+				.offset = 0,
+			};
+
+			const auto buffer_region = SDL_GPUBufferRegion{
+				.buffer = context.storage_buffer,
+				.offset = 0,
+				.size = static_cast<Uint32>(current_instance * sizeof(UiVertexNew))
+			};
+
+			SDL_UploadToGPUBuffer(copy_pass,  &buffer_location, &buffer_region, true);
+		},
+	};
+}
+
 RenderPhaseUploader se::create_node_uploader() {
 	return RenderPhaseUploader{
 		.callback = [](flecs::world& world, flecs::entity& render_phase, flecs::entity& uploader, SDL_GPUDevice* gpu, SDL_GPUCopyPass* copy_pass) {
@@ -383,10 +597,9 @@ RenderPhaseUploader se::create_node_uploader() {
 
 				const auto& ui_node = extracted_nodes[data.extracted_index];
 
-				if (!phase_items[current_batch_index].texture || phase_items[current_batch_index].texture != ui_node.texture) {
+				if ((!phase_items[current_batch_index].texture && ui_node.texture) || (phase_items[current_batch_index].texture && !ui_node.texture) || phase_items[current_batch_index].texture != ui_node.texture) {
 					current_batch_index = i;
 
-					phase_items[current_batch_index].num_instances = 1;
 					phase_items[current_batch_index].first_index = current_vertex / 4 * 6;
 					phase_items[current_batch_index].texture = ui_node.texture;
 				}
@@ -436,6 +649,7 @@ RenderPhaseUploader se::create_node_uploader() {
 				current_vertex += 4;
 
 				++phase_items[current_batch_index].batch_size;
+				++phase_items[current_batch_index].num_instances;
 				phase_items[current_batch_index].num_indices = 6 * phase_items[current_batch_index].batch_size;
 			}
 

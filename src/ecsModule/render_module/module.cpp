@@ -312,8 +312,9 @@ RenderPhaseRenderer se::create_default_renderer() {
 			const Material* material = nullptr;
 
 			for (size_t i = 0; i < phase_items.size();) {
+				bool indexed = false;
+
 				const auto& item = phase_items[i];
-				const auto scissor = item.scissor.value_or(SDL_Rect{0, 0, default_uniform.viewport.x, default_uniform.viewport.y });
 
 				if (item.num_indices == 0) {
 					auto entity = world.entity(item.entity);
@@ -346,15 +347,21 @@ RenderPhaseRenderer se::create_default_renderer() {
 					context = &world.entity(item.context_entity).get<PhaseContext>();
 					last_context = item.context_entity;
 
-					SDL_GPUBufferBinding vertex_buffer_binding{
-						.buffer = context->vertex_buffer,
-					};
-					SDL_GPUBufferBinding index_buffer_binding{
-						.buffer = context->index_buffer,
-					};
+					if (context->vertex_buffer) {
+						SDL_GPUBufferBinding vertex_buffer_binding{
+							.buffer = context->vertex_buffer,
+						};
+						SDL_BindGPUVertexBuffers(render_pass, 0, &vertex_buffer_binding, 1);
+					}
 
-					SDL_BindGPUVertexBuffers(render_pass, 0, &vertex_buffer_binding, 1);
-					SDL_BindGPUIndexBuffer(render_pass, &index_buffer_binding, context->index_element_size);
+					if (context->index_buffer) {
+						SDL_GPUBufferBinding index_buffer_binding{
+							.buffer = context->index_buffer,
+						};
+						SDL_BindGPUIndexBuffer(render_pass, &index_buffer_binding, context->index_element_size);
+
+						indexed = true;
+					}
 
 					if (context->storage_buffer) {
 						SDL_BindGPUVertexStorageBuffers(render_pass, 0, &context->storage_buffer, 1);
@@ -399,7 +406,12 @@ RenderPhaseRenderer se::create_default_renderer() {
 					}
 				}
 
-				SDL_DrawGPUIndexedPrimitives(render_pass, item.num_indices, item.num_instances, item.first_index, item.vertex_offset, item.first_instance);
+				if (indexed) {
+					SDL_DrawGPUIndexedPrimitives(render_pass, item.num_indices, item.num_instances, item.first_index, item.vertex_offset, item.first_instance);
+				}
+				else {
+					SDL_DrawGPUPrimitives(render_pass, item.num_indices, item.num_instances, item.vertex_offset, item.first_instance);
+				}
 
 				++stats.draw_calls;
 
