@@ -17,10 +17,10 @@ UiRenderModule::UiRenderModule(flecs::world& world) {
 
 	text_engine = world.get<TextRenderModule>().engine;
 
-	world.system<Node, Text, TextComputed, TextData, TextFont>("init text node")
+	world.system<Node, SizeStrategy, Text, TextComputed, TextData, TextFont>("init text node")
 		.with<InitText>()
 		.kind(Phases::Update)
-		.each([&](flecs::entity entity, Node& node, Text& text, TextComputed& computed, TextData& data, TextFont& font){
+		.each([&](flecs::entity entity, Node& node, SizeStrategy& size_strategy, Text& text, TextComputed& computed, TextData& data, TextFont& font){
 			if (!font.handle) {
 				return;
 			}
@@ -66,7 +66,9 @@ UiRenderModule::UiRenderModule(flecs::world& world) {
 			TTF_GetStringSize(font.handle->get_resource(), text.c_str(), text.length(), &data.size.x, &data.size.y);
 
 			data.size = glm::vec2(data.size) * font.font_scale;
-			node.sizing_policy = { Node::Grow{ .min = data.min_width, .max = data.size.x }, Node::Grow{ .min = data.size.y } };
+			data.alignment_offset = computed.alignment_offset;
+			size_strategy.x = Grow{ .min = data.min_width };
+			size_strategy.y = Grow{ .min = data.size.y };
 
 			entity.remove<InitText>();
 		});

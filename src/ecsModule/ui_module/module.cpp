@@ -472,6 +472,8 @@ UiModule::UiModule(flecs::world& world) {
 				.text = text,
 				.font = text_font.handle->get_resource(),
 				.font_scale = text_font.font_scale,
+				.text_size = text_data.size,
+				.alignment = text_font.alignment,
 			});
 
 			composer[index.bfs + 1].size = text_data.size;
@@ -483,14 +485,15 @@ UiModule::UiModule(flecs::world& world) {
 			composer.build();
 		});
 
-	world.system<Node, NodeIndex, Transform, const LayoutComposer>()
+	world.system<Node, NodeIndex, Transform, const LayoutComposer>("apply layout")
 		.kind(Phases::PostUpdate)
 		.each([](flecs::entity entity, Node& node, NodeIndex& index, Transform& transform, const LayoutComposer& composer) {
 			const auto& layout = composer[index.bfs + 1];
 
 			if (layout.text_data) {
 				entity.set<TextComputed>({
-					.computed_text = layout.text_data.value().text
+					.computed_text = layout.text_data.value().text,
+					.alignment_offset = layout.text_data.value().alignment_offset,
 				});
 			}
 
