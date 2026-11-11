@@ -56,7 +56,9 @@ std::shared_ptr<Font> AssetStorage::load_font(const std::string& path, float siz
 			return nullptr;
 		}
 
-		TTF_SetFontSDF(resource, true); // TODO: world->get<AppConfig>().use_sdf;
+		if (!TTF_SetFontSDF(resource, true)) { // TODO: world->get<AppConfig>().use_sdf;
+			spdlog::info(SDL_GetError());
+		}
 
 		fonts[path] = std::make_shared<Font>(resource, path);
 	}
