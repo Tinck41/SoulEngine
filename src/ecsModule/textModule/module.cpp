@@ -74,7 +74,8 @@ TextModule::TextModule(flecs::world& world) {
 	world.component<CameraTextBatches>().add(flecs::Singleton);
 
 	world.component<TextFont>()
-		.member("size", &TextFont::size);
+		.member(&TextFont::size, "size")
+		.member(&TextFont::alignment, "alignment");
 	world.component<TextData>()
 		.member<glm::ivec2>("size");
 
@@ -82,17 +83,17 @@ TextModule::TextModule(flecs::world& world) {
 		.is_a<Color>();
 
 	world.component<TextOutline>()
-		.member("width", &TextOutline::width)
-		.member("color", &TextOutline::color);
+		.member(&TextOutline::width, "width")
+		.member(&TextOutline::color, "color");
 
 	world.component<TextShadow>()
-		.member("shift", &TextShadow::shift)
-		.member("color", &TextShadow::color);
+		.member(&TextShadow::shift, "shift")
+		.member(&TextShadow::color, "color");
 
 	world.component<InitText>();
 
 	world.component<TextComputed>()
-		.member("computed_text", &TextComputed::computed_text);
+		.member(&TextComputed::computed_text, "computed_text");
 
 	world.component<Text2d>()
 		.is_a<std::string>()

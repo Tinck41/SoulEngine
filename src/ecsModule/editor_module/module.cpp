@@ -11,17 +11,19 @@ EditorModule::EditorModule(flecs::world& world) {
 	world.module<EditorModule>();
 
 	world.component<editor::Immediate>()
-		.member("clear", &editor::Immediate::clear_on_frame_end)
+		.member(&editor::Immediate::clear_on_frame_end, "clear")
 		.add(flecs::Singleton);
 
 	world.system<editor::Immediate>()
 		.kind(Phases::OnStart)
+		.immediate()
 		.each([&] (editor::Immediate& im) {
 			im.init(world);
 		});
 
 	world.system<editor::Immediate>()
 		.kind(Phases::PreUpdate)
+		.immediate()
 		.each([&] (editor::Immediate& im) {
 			im.begin_frame();
 		});

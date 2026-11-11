@@ -173,8 +173,8 @@ template <typename T>
 flecs::opaque<std::pair<T, T>, T> std_pair_support(flecs::world& world) {
     return flecs::opaque<std::pair<T, T>, T>()
         .as_type(world.component<std::pair<T, T>>()
-			.member("first", &std::pair<T, T>::first)
-			.member("second", &std::pair<T, T>::second)
+			.member(&std::pair<T, T>::first, "first")
+			.member(&std::pair<T, T>::second, "second")
 		)
         .serialize([](const flecs::serializer *s, const std::pair<T, T> *data) {
 			s->member("first");
@@ -239,8 +239,8 @@ DefaultModules::DefaultModules(flecs::world& world) {
 		.opaque(std_vector_support<SDL_FRect>);
 
 	world.component<TextureAtlas>()
-		.member("rect", &TextureAtlas::rects)
-		.member("current_index", &TextureAtlas::current_index);
+		.member(&TextureAtlas::rects, "rect")
+		.member(&TextureAtlas::current_index, "current_index");
 
 	world.component<std::optional<TextureAtlas>>()
 		.opaque(std_optional_support<TextureAtlas>);
@@ -261,12 +261,12 @@ DefaultModules::DefaultModules(flecs::world& world) {
 		.opaque(std_optional_support<int>);
 
 	world.component<std::pair<float, float>>()
-		.member("first", &std::pair<float, float>::first)
-		.member("second", &std::pair<float, float>::second);
+		.member(&std::pair<float, float>::first, "first")
+		.member(&std::pair<float, float>::second, "second");
 
 	world.component<std::pair<std::optional<float>, std::optional<float>>>()
-		.member("first", &std::pair<std::optional<float>, std::optional<float>>::first)
-		.member("second", &std::pair<std::optional<float>, std::optional<float>>::second);
+		.member(&std::pair<std::optional<float>, std::optional<float>>::first, "first")
+		.member(&std::pair<std::optional<float>, std::optional<float>>::second, "second");
 
 
 	//world.module<DefaultModules>();

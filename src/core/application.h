@@ -65,11 +65,11 @@ namespace se {
 		}
 
 		template<typename T, typename... Args>
-		Application& add_system(T phase, void(*callback)(flecs::world&, Args&...)) {
+		Application& add_system(T phase, void(*callback)(flecs::iter& it, size_t i, Args&...)) {
 			world.system<Args...>()
 				.kind(phase)
-				.each([callback, this](Args&... args) {
-					callback(world, args...);
+				.each([callback, this](flecs::iter& it, size_t i, Args&... args) {
+					callback(it, i, args...);
 				});
 
 			return *this;

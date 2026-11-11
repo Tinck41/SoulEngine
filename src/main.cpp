@@ -33,11 +33,12 @@ namespace se {
 	};
 }
 
-void default_init(flecs::world& world) {
+void default_init(flecs::iter& it, size_t) {
 	using namespace se;
 
-	world.component<se::CameraController>()
-		.member("speed", &se::CameraController::speed);
+	auto world = it.world();
+
+	world.readonly_end();
 
 	auto device = world.get_ref<RenderDevice>();
 	const auto window = world.get<WindowModule>().main_window;
@@ -159,6 +160,8 @@ void default_init(flecs::world& world) {
 
 		camera.set(RenderPhases{ transparent_3d, transparent_2d, transparent_ui });
 	}
+
+	world.readonly_begin();
 }
 
 void rotate(flecs::world& world, se::Transform& transform, se::Mesh3d& mesh, se::Mesh3dUniform& uniform) {
@@ -166,30 +169,33 @@ void rotate(flecs::world& world, se::Transform& transform, se::Mesh3d& mesh, se:
 	uniform.model = transform.matrix;
 }
 
-void camera_controll(flecs::world& world, se::Input& input, se::Transform& transform, se::CameraController& controll) {
+void camera_controll(flecs::iter& it, size_t, se::Input& input, se::Transform& transform, se::CameraController& controll) {
+	const auto delta_time = it.world().delta_time();
+
 	if (input.keys[se::Key::A].remain) {
-		transform.translation.x -= controll.speed * world.delta_time();
+		transform.translation.x -= controll.speed * delta_time;
 	}
 	else if (input.keys[se::Key::D].remain) {
-		transform.translation.x += controll.speed * world.delta_time();
+		transform.translation.x += controll.speed * delta_time;
 	}
 	else if (input.keys[se::Key::W].remain) {
-		transform.translation.z -= controll.speed * world.delta_time();
+		transform.translation.z -= controll.speed * delta_time;
 	}
 	else if (input.keys[se::Key::S].remain) {
-		transform.translation.z += controll.speed * world.delta_time();
+		transform.translation.z += controll.speed * delta_time;
 	}
 }
 
 int main() {
 	se::Application::create()
 		.add_module<se::DefaultModules>()
-		.add_module<se::EditorModule>()
+		//.add_module<se::EditorModule>()
+		.add_module<se::DebugModule>()
 		.add_system(se::Phases::OnStart, &default_init)
-		.add_system(se::Phases::Update, &rotate)
+		//.add_system(se::Phases::Update, &rotate)
 		.add_system(se::Phases::Update, &camera_controll)
-		.add_module<se::GameModule>()
-		.add_script("assets/scripts/sandbox.flecs")
+		//.add_module<se::GameModule>()
+		//.add_script("assets/scripts/sandbox.flecs")
 		.run();
 }
 

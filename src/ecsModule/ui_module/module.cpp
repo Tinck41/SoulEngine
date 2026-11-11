@@ -91,25 +91,25 @@ UiModule::UiModule(flecs::world& world) {
 		.is_a<Color>();
 
 	world.component<Grow>()
-		.member("min", &Grow::min)
-		.member("max", &Grow::max);
+		.member(&Grow::min, "min")
+		.member(&Grow::max, "max");
 
 	world.component<Fit>()
-		.member("min", &Fit::min)
-		.member("max", &Fit::max);
+		.member(&Fit::min, "min")
+		.member(&Fit::max, "max");
 
 	world.component<NodeIndex>()
-		.member("dfs", &NodeIndex::dfs)
-		.member("bfs", &NodeIndex::bfs);
+		.member(&NodeIndex::dfs, "dfs")
+		.member(&NodeIndex::bfs, "bfs");
 
 	world.component<Fixed>()
-		.member("value", &Fixed::value);
+		.member(&Fixed::value, "value");
 
 	world.component<SizeStrategy::Strategy>();
 
 	world.component<SizeStrategy>()
-		.member("x", &SizeStrategy::x)
-		.member("y", &SizeStrategy::y);
+		.member(&SizeStrategy::x, "x")
+		.member(&SizeStrategy::y, "y");
 
 	world.component<GrowDirection>()
 		.constant("Horizontal", GrowDirection::Horizontal)
@@ -118,16 +118,17 @@ UiModule::UiModule(flecs::world& world) {
 		.add(flecs::Exclusive);
 
 	world.component<Node>()
-		.member("self_alignment", &Node::self_alignment)
-		.member("size", &Node::size)
-		.member("child_alignment", &Node::child_alignment)
-		.member("child_gap", &Node::child_gap)
-		.member("margin", &Node::margin)
-		.member("padding", &Node::padding)
-		.member("display", &Node::display)
-		.member("absolute", &Node::absolute)
-		.member("border_radius", &Node::border_radius)
-		.member("border_width", &Node::border_width)
+		.member(&Node::self_alignment, "self_alignment")
+		.member(&Node::scroll_offset, "scroll_percent")
+		.member(&Node::size, "size")
+		.member(&Node::child_alignment, "child_alignment")
+		.member(&Node::child_gap, "child_gap")
+		.member(&Node::margin, "margin")
+		.member(&Node::padding, "padding")
+		.member(&Node::display, "display")
+		.member(&Node::absolute, "absolute")
+		.member(&Node::border_radius, "border_radius")
+		.member(&Node::border_width, "border_width")
 		.add(flecs::With, world.component<SizeStrategy>())
 		.add(flecs::With, world.component<NodeIndex>())
 		.add(flecs::With, world.component<RenderLayers>())

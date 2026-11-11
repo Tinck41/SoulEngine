@@ -18,7 +18,7 @@ DebugModule::DebugModule(flecs::world& world) {
 	world.component<FpsLabel>();
 	world.component<DrawCallsLabel>();
 	world.component<FpsUpdateTimer>()
-		.member("update_rate", &FpsUpdateTimer::update_rate);
+		.member(&FpsUpdateTimer::update_rate, "update_rate");
 
 	world.system<AssetStorage>("spawn fps label")
 		.kind(Phases::OnStart)

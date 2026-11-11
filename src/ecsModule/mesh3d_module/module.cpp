@@ -44,22 +44,23 @@ Mesh3dModule::Mesh3dModule(flecs::world& world) {
 	world.component<Mesh3dGpu>()
 		.add(flecs::OnInstantiate, flecs::Inherit);
 	world.component<Mesh3d>()
+		.member(&Mesh3d::color, "color")
 		.add(flecs::OnInstantiate, flecs::Inherit)
 		.add(flecs::With, world.component<Mesh3dGpu>())
 		.add(flecs::With, world.component<Mesh3dInstance>());
 	world.component<ObjAsset>()
-		.member("path", &ObjAsset::path)
-		.member("texture_path", &ObjAsset::texture_path)
+		.member(&ObjAsset::path, "path")
+		.member(&ObjAsset::texture_path, "texture_path")
 		.add(flecs::OnInstantiate, flecs::Inherit);
 	world.component<Mesh3dUniform>()
-		.member("model", &Mesh3dUniform::model);
+		.member(&Mesh3dUniform::model, "model");
 	world.component<Mesh3dAllocator>()
 		.add(flecs::Singleton);
 	world.component<Mesh3dDescription>()
-		.member("texture_path", &Mesh3dDescription::texture_path)
-		.member("model_path", &Mesh3dDescription::model_path)
-		.member("model_format", &Mesh3dDescription::model_format)
-		.member("optimization_flags", &Mesh3dDescription::optimization_flags);
+		.member(&Mesh3dDescription::texture_path, "texture_path")
+		.member(&Mesh3dDescription::model_path, "model_path")
+		.member(&Mesh3dDescription::model_format, "model_format")
+		.member(&Mesh3dDescription::optimization_flags, "optimization_flags");
 
 	world.observer<ObjAsset, AssetStorage, RenderDevice>()
 		.term_at(1).src<AssetStorage>()
@@ -498,8 +499,6 @@ se::PhaseContext se::create_mesh3d_context(flecs::world& world) {
 }
 
 se::RenderPhaseExtractor se::create_mesh3d_extractor(flecs::world& world, flecs::entity_t helper) {
-	world.readonly_end();
-
 	auto mesh_query = world.query_builder()
 		.with<const Mesh3d>()
 		.with<const Mesh3dGpu>()
@@ -510,8 +509,6 @@ se::RenderPhaseExtractor se::create_mesh3d_extractor(flecs::world& world, flecs:
 		.with<RenderPhase>().src("$phase_entity").inout()
 		.with<Aabb>().src("$camera").inout()
 		.build();
-
-	world.readonly_begin();
 
 	return {
 		.callback = [](flecs::iter& it) {

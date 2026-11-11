@@ -17,9 +17,9 @@ SpriteRenderModule::SpriteRenderModule(flecs::world& world) {
 
 	world.component<ExtractedSprites>();
 	world.component<CirlceUniform>()
-		.member("radius", &CirlceUniform::radius)
-		.member("softness", &CirlceUniform::softness)
-		.member("center", &CirlceUniform::center);
+		.member(&CirlceUniform::radius, "radius")
+		.member(&CirlceUniform::softness, "softness")
+		.member(&CirlceUniform::center, "center");
 }
 
 Material se::create_sprite_material(flecs::world& world) {
