@@ -44,6 +44,7 @@ namespace se {
 		std::pair<SizePolicy, SizePolicy> sizing_policy = { Fit{}, Fit{} };
 		std::pair<Overflow, Overflow> overflow = { Overflow::Visible, Overflow::Visible };
 		std::pair<std::optional<float>, std::optional<float>> self_alignment;
+		std::pair<std::optional<float>, std::optional<float>> scroll_offset;
 
 		glm::vec2 pos;
 		glm::vec2 size;

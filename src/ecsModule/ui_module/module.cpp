@@ -451,6 +451,14 @@ UiModule::UiModule(flecs::world& world) {
 						.max_size = max_size
 					};
 
+					if (node.overflow.first == Node::Overflow::Scroll) {
+						layout_node.scroll.first = node.scroll_offset.first.value_or(0.f);
+					}
+
+					if (node.overflow.second == Node::Overflow::Scroll) {
+						layout_node.scroll.second = node.scroll_offset.second.value_or(0.f);
+					}
+
 					composer.push_node(std::move(layout_node));
 				}
 			}
