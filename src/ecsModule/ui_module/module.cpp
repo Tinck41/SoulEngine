@@ -16,29 +16,42 @@
 
 using namespace se;
 
-void update_clipping(flecs::entity entity, const GlobalTransform& transform, const Node& node, std::optional<SDL_Rect> parent_clip) {
+void update_clipping(flecs::entity entity, const GlobalTransform& transform, const Node& node, std::optional<RectI> parent_clip) {
 	if (!node.display) {
-		parent_clip = SDL_Rect{ static_cast<int>(transform.translation.x), static_cast<int>(transform.translation.y), 0, 0 };
+		parent_clip = RectI{
+			.min = glm::vec2(0),
+			.max = glm::vec2(0),
+		};
 
 		entity.set<ClipContent>(parent_clip.value());
 	}
-	else if (node.overflow.first == Node::Overflow::Clip && node.overflow.second == Node::Overflow::Clip) {
-		parent_clip = SDL_Rect{
-			static_cast<int>(transform.translation.x),
-			static_cast<int>(transform.translation.y),
-			static_cast<int>(node.size.x),
-			static_cast<int>(node.size.y) };
+	else if (node.overflow.first == Node::Overflow::Scroll && node.overflow.second == Node::Overflow::Scroll || node.overflow.first == Node::Overflow::Clip && node.overflow.second == Node::Overflow::Clip) {
+		const auto new_clip = RectI{
+			.min = glm::floor(glm::vec2(transform.translation)),
+			.max = glm::ceil(glm::vec2(transform.translation) + node.size)
+		};
+
+		if (parent_clip) {
+			parent_clip = RectI::clamp(new_clip, parent_clip.value());
+		}
+		else {
+			parent_clip = new_clip;
+		}
 
 		entity.set<ClipContent>(parent_clip.value());
 	}
 	else if (parent_clip) {
 		entity.set<ClipContent>(parent_clip.value());
 	}
-	else if (entity.has<ClipContent>()) {
-		entity.remove<ClipContent>();
-	}
 
 	entity.children([&parent_clip](flecs::entity child) {
+		if (!child.is_alive() || !child.has<GlobalTransform>() || !child.has<Node>()) {
+			return;
+		}
+
+		const auto name = child.name();
+		const auto children_num = utils::get_children_count(child);
+
 		update_clipping(child, child.get<GlobalTransform>(), child.get<Node>(), parent_clip);
 	});
 }
@@ -307,7 +320,7 @@ UiModule::UiModule(flecs::world& world) {
 							if (it.is_set(5)) {
 								auto &clip_content = it.field_at<const ClipContent>(5, i);
 
-								if (clip_content.w == 0 && clip_content.h == 0) {
+								if (clip_content.get_width() == 0 && clip_content.get_height() == 0) {
 									continue;
 								}
 							}

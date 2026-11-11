@@ -3,8 +3,10 @@
 #include "SDL3_ttf/SDL_ttf.h"
 #include "color.h"
 #include "flecs.h"
+#include "rect.h"
 #include "texture.h"
 
+#include <optional>
 #include <vector>
 #include <memory>
 
@@ -20,6 +22,7 @@ namespace se {
 		float outline_width;
 		Color outline_color;
 		TTF_GPUAtlasDrawSequence* seq;
+		std::optional<RectI> scissor;
 	};
 
 	using ExtractedTextNodes = std::vector<ExtractedTextNode>;
@@ -38,6 +41,9 @@ namespace se {
 		glm::vec4 border_color;
 		float border_radius;
 		float border_width;
+		size_t dfs_index;
+		size_t bfs_index;
+		std::optional<RectI> scissor;
 	};
 
 	using ExtractedNodes = std::vector<ExtractedNode>;

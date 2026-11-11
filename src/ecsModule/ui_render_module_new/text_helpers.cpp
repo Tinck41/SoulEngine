@@ -71,7 +71,7 @@ RenderPhaseExtractor se::create_text_node_extractor(flecs::world& world, flecs::
 					const auto& transform = transform_field[i];
 
 					const auto material_id = it.is_set(10) ? entity : helper;
-					const auto scissor = it.is_set(11) ? it.field<const ClipContent>(11)[i] : std::optional<SDL_Rect>{};
+					const auto scissor = it.is_set(11) ? it.field<const ClipContent>(11)[i] : std::optional<ClipContent>{};
 					const auto [outline_width, outline_color] = [&] {
 						if (it.is_set(5)) {
 							const auto& outline_data = outline_field[i];
@@ -106,7 +106,8 @@ RenderPhaseExtractor se::create_text_node_extractor(flecs::world& world, flecs::
 								shadow_field[i].color,
 								0,
 								TRANSPARENT,
-								seq
+								seq,
+								scissor
 							);
 						}
 
@@ -122,7 +123,8 @@ RenderPhaseExtractor se::create_text_node_extractor(flecs::world& world, flecs::
 							color,
 							outline_width,
 							outline_color,
-							seq
+							seq,
+							scissor
 						);
 
 						last_texture = seq->atlas_texture;
@@ -172,7 +174,7 @@ RenderPhaseUploader se::create_text_node_uploader() {
 					continue;
 				}
 
-				if (!phase_items[batch_index].texture || phase_items[batch_index].texture != seq->atlas_texture) {
+				if (!phase_items[batch_index].texture || phase_items[batch_index].texture != seq->atlas_texture || phase_items[batch_index].scissor != text_data.scissor) {
 					batch_index = i;
 
 					data.texture = seq->atlas_texture;

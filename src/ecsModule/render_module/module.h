@@ -3,6 +3,7 @@
 #include "ecsModule/render_module/render_phase.h"
 #include "flecs.h"
 #include "SDL3/SDL.h"
+#include "rect.h"
 
 #include <memory>
 
@@ -23,9 +24,16 @@ namespace se {
 		RenderModule(flecs::world& world);
 	};
 
-	struct ClipContent : public SDL_Rect {
-		ClipContent(int x, int y, int w, int h) : SDL_Rect{x, y, w, h} {}
-		ClipContent(SDL_Rect rect) : SDL_Rect(rect) {}
+	struct ClipContent : public RectI {
+		ClipContent(int x, int y, int w, int h) : RectI{ .min = glm::vec2(x, y), .max = glm::vec2(x + w, y + h) } {}
+		ClipContent(RectI rect) : RectI(rect) {}
+
+		operator RectF() const {
+			return {
+				.min = min,
+				.max = max,
+			};
+		}
 
 		ClipContent() = default;
 	};

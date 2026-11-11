@@ -42,6 +42,7 @@ add_library(${PROJECT_NAME} STATIC
 	src/font.h
 	src/font.cpp
 	src/dag.h
+	src/rect.h
 	src/ecsModule/assetModule/module.h
 	src/ecsModule/assetModule/module.cpp
 	src/ecsModule/ui_module/layout.h

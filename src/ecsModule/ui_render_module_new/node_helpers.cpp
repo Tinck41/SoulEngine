@@ -212,6 +212,7 @@ RenderPhaseExtractor se::create_image_node_extractor(flecs::world& world, flecs:
 		.with<GlobalTransform>()
 		.with<Aabb>()
 		.with<Material>().optional()
+		.with<ClipContent>().optional()
 		.with<ExtractedNodes>().src("$helper").inout()
 		.with<RenderPhase>().src("$phase_entity").inout()
 		.with<Aabb>().src("$camera").inout()
@@ -229,9 +230,9 @@ RenderPhaseExtractor se::create_image_node_extractor(flecs::world& world, flecs:
 				auto transform_field = it.field<GlobalTransform>(3);
 				auto aabb_field = it.field<Aabb>(4);
 
-				auto& extracted_nodes = it.field<ExtractedNodes>(6)[0];
-				auto& render_phase = it.field<RenderPhase>(7)[0];
-				auto& camera_aabb = it.field<Aabb>(8)[0];
+				auto& extracted_nodes = it.field<ExtractedNodes>(7)[0];
+				auto& render_phase = it.field<RenderPhase>(8)[0];
+				auto& camera_aabb = it.field<Aabb>(9)[0];
 
 				for (auto i : it) {
 					if (!camera_aabb.is_intersect(aabb_field[i])) {
@@ -247,7 +248,7 @@ RenderPhaseExtractor se::create_image_node_extractor(flecs::world& world, flecs:
 
 					const auto material_id = it.is_set(5) ? entity : helper;
 
-					render_phase.items.emplace_back(entity, helper, material_id, extracted_nodes.size(), stack_index + node_offsets::IMAGE);
+					render_phase.items.emplace_back(entity, helper, material_id, extracted_nodes.size(), stack_index + node_offsets::IMAGE, it.is_set(6) ? it.field<ClipContent>(6)[i] : std::optional<RectI>{});
 
 					const auto [uv, size] = [&] {
 						if (image.texture_atlas) {
@@ -303,7 +304,7 @@ RenderPhaseExtractor se::create_color_node_extractor(flecs::world& world, flecs:
 
 			while(it.next()) {
 				auto node_field = it.field<Node>(0);
-				auto stack_index_field = it.field<NodeIndex>(1);
+				auto index_field = it.field<NodeIndex>(1);
 				auto color_field = it.field<BackgroundColor>(3);
 				auto transform_field = it.field<GlobalTransform>(4);
 				auto aabb_field = it.field<Aabb>(5);
@@ -319,7 +320,7 @@ RenderPhaseExtractor se::create_color_node_extractor(flecs::world& world, flecs:
 
 					const auto entity = it.entity(i);
 					const auto& node = node_field[i];
-					const auto& stack_index = stack_index_field[i].dfs;
+					const auto& index = index_field[i];
 					const auto& color = color_field[i];
 					const auto& transform = transform_field[i];
 
@@ -328,25 +329,27 @@ RenderPhaseExtractor se::create_color_node_extractor(flecs::world& world, flecs:
 					}
 
 					const auto material_id = it.is_set(6) ? entity : helper;
-					const auto scissor = it.is_set(7) ? it.field<ClipContent>(7)[i] : std::optional<SDL_Rect>{};
 
-					render_phase.items.emplace_back(entity, helper, material_id, extracted_nodes.size(), stack_index + node_offsets::BACKGROUND_COLOR, scissor);
+					render_phase.items.emplace_back(entity, helper, material_id, extracted_nodes.size(), index.dfs + node_offsets::BACKGROUND_COLOR, it.is_set(7) ? it.field<ClipContent>(7)[i] : std::optional<RectI>{});
 
-					extracted_nodes.emplace_back(
-						entity,
-						material_id,
-						nullptr,
-						glm::vec2{},
-						transform.translation,
-						transform.rotation,
-						transform.scale,
-						color,
-						node.size,
-						glm::vec2{ 0.f, 0.f },
-						it.is_set(2) ? it.field<BorderColor>(2)[i] : glm::vec4{},
-						node.border_radius,
-						node.border_width
-					);
+					extracted_nodes.push_back(ExtractedNode{
+						.entity = entity,
+						.material_id = material_id,
+						.texture = nullptr,
+						.texture_size = glm::vec2{},
+						.translation = transform.translation,
+						.rotation = transform.rotation,
+						.scale = transform.scale,
+						.color = color,
+						.size = node.size,
+						.uv = glm::vec2{ 0.f, 0.f },
+						.border_color = it.is_set(2) ? it.field<BorderColor>(2)[i] : glm::vec4{},
+						.border_radius = node.border_radius,
+						.border_width = node.border_width,
+						.dfs_index = index.dfs,
+						.bfs_index = index.bfs,
+						.scissor = it.is_set(7) ? it.field<ClipContent>(7)[i] : std::optional<RectI>{},
+					});
 
 				}
 			}

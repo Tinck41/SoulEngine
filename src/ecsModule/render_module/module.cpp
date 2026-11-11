@@ -238,10 +238,9 @@ RenderModule::RenderModule(flecs::world& world) {
 		.add(flecs::Singleton);
 
 	world.component<ClipContent>()
-		.member("x", &ClipContent::x)
-		.member("y", &ClipContent::y)
-		.member("width", &ClipContent::w)
-		.member("height", &ClipContent::h);
+		.is_a<RectI>()
+		.member(&ClipContent::min, "min")
+		.member(&ClipContent::max, "max");
 
 	world.observer<RenderDevice>()
 		.event(flecs::OnSet)
@@ -304,6 +303,8 @@ RenderPhaseRenderer se::create_default_renderer() {
 
 			auto& stats = world.get_mut<RenderStats>();
 
+			std::optional<RectI> last_scissor = std::nullopt;
+
 			flecs::entity_t last_context = 0;
 			flecs::entity_t last_material = 0;
 
@@ -321,7 +322,25 @@ RenderPhaseRenderer se::create_default_renderer() {
 					continue;
 				}
 
-				SDL_SetGPUScissor(render_pass, &scissor);
+				if (item.scissor != last_scissor) {
+					last_scissor = item.scissor;
+
+					if (last_scissor) {
+						auto temp = RectI::clamp(last_scissor.value(), RectI::from_xy_size(0, 0, default_uniform.viewport)).to_sdl_rect();
+
+						SDL_SetGPUScissor(render_pass, &temp);
+					}
+					else {
+						auto temp = SDL_Rect{
+							.x = 0,
+							.y = 0,
+							.w = default_uniform.viewport.x,
+							.h = default_uniform.viewport.y,
+						};
+
+						SDL_SetGPUScissor(render_pass, &temp);
+					}
+				}
 
 				if (item.context_entity != last_context) {
 					context = &world.entity(item.context_entity).get<PhaseContext>();

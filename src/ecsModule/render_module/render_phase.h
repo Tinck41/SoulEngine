@@ -6,6 +6,7 @@
 #include "glm.hpp"
 #include "flecs.h"
 #include "SDL3/SDL.h"
+#include "rect.h"
 
 #include <vector>
 
@@ -55,9 +56,9 @@ namespace se {
 
 		float sort_value;
 
-		std::optional<SDL_Rect> scissor;
+		std::optional<RectI> scissor;
 
-		SDL_GPUTexture* texture;
+		SDL_GPUTexture* texture = nullptr;
 
 		std::uint32_t num_indices = 0;
 		std::uint32_t num_instances = 0;
