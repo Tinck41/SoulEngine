@@ -13,11 +13,15 @@ namespace se {
 			std::string text;
 			TTF_Font* font;
 			float font_scale;
+			glm::vec2 text_size;
+			glm::vec2 alignment;
+			glm::vec2 alignment_offset;
 		};
 
 		size_t parent_bfs_index = 0;
 		size_t first_child = 0;
 		size_t children_num = 0;
+		size_t non_absolute_children_num = 0;
 		size_t bfs_index = 0;
 
 		bool horizontal;
@@ -36,6 +40,9 @@ namespace se {
 		std::pair<bool, bool> fixed;
 		std::pair<bool, bool> grow;
 		std::pair<bool, bool> fit;
+
+		std::pair<std::optional<float>, std::optional<float>> clip;
+		std::pair<std::optional<float>, std::optional<float>> scroll;
 
 		std::pair<std::optional<float>, std::optional<float>> self_alignment;
 		std::pair<std::optional<float>, std::optional<float>> min_size;
