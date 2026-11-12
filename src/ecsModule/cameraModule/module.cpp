@@ -84,6 +84,13 @@ CameraModule::CameraModule(flecs::world& world) {
 
 				camera.viewport = texture->get_size();
 			}
+			else {
+				main_window_query.each([&](flecs::entity entity, Window& window) {
+					camera.projection = glm::ortho(0.f, static_cast<float>(window.width), static_cast<float>(window.height), 0.f, -1.f, 1.f);
+					camera.viewport = glm::vec2(window.width, window.height);
+					camera.render_target = entity;
+				});
+			}
 		});
 
 	world.observer<Camera>()
