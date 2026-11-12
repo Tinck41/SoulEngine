@@ -1,5 +1,5 @@
 cbuffer UBO : register(b0, space1) {
-	float4x4 mvp;
+	float4x4 view_proj;
 }
 
 struct InstanceData {
@@ -31,7 +31,7 @@ Output main(Input input, uint id : SV_InstanceID) {
 
 	InstanceData instance = DataBuffer[id];
 
-	output.position = mul(mvp, mul(instance.model, float4(input.position, 1)));
+	output.position = mul(view_proj, mul(instance.model, float4(input.position, 1)));
 	output.color = input.color;
 	output.uv = input.uv;
 	output.normal = mul((float3x3)instance.model, input.normal);

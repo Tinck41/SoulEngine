@@ -3,6 +3,7 @@
 
 #include "ecsModule/assetModule/module.h"
 #include "ecsModule/common.h"
+#include "ecsModule/render_module/light_uniform.h"
 #include "ecsModule/render_module/module.h"
 #include "ecsModule/windowModule/module.h"
 #include "spdlog/spdlog.h"
@@ -373,7 +374,7 @@ se::Material se::create_mesh3d_material(flecs::world& world) {
 //	auto vert_shader = load_shader(*device.gpu, "assets/shaders/out/mesh.vert.msl", 2);
 //	auto frag_shader = load_shader(*device.gpu, "assets/shaders/out/mesh.frag.msl", 0, 1);
 	auto vert_shader = load_shader(*device.gpu, "assets/shaders/out/mesh3d_pull.vert.msl", 1, 0, 1);
-	auto frag_shader = load_shader(*device.gpu, "assets/shaders/out/mesh3d_pull.frag.msl", 0, 1);
+	auto frag_shader = load_shader(*device.gpu, "assets/shaders/out/mesh3d_pull.frag.msl", 2, 1);
 
 	SDL_GPUColorTargetDescription color_target_description{
 		.format = SDL_GetGPUSwapchainTextureFormat(device.gpu, window),
@@ -456,7 +457,7 @@ se::Material se::create_mesh3d_material(flecs::world& world) {
 		.pipeline = pipeline,
 		.sampler = sampler,
 		.vertex_uniforms = { world.id<DefaultUniform>() },
-		.fragment_uniforms = { world.id<DefaultUniform>() },
+		.fragment_uniforms = { world.id<DefaultUniform>(), world.id<PhongMaterial>() },
 	};
 }
 

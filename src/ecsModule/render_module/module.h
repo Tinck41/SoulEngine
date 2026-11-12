@@ -12,6 +12,10 @@ namespace se {
 		int draw_calls = 0;
 	};
 
+	struct Light {
+		Color color;
+	};
+
 	struct RenderDevice {
 		SDL_GPUDevice* gpu;
 	};

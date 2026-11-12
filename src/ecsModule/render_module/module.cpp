@@ -4,6 +4,7 @@
 #include "ecsModule/cameraModule/module.h"
 #include "ecsModule/common.h"
 #include "ecsModule/render_module/default_uniform.h"
+#include "ecsModule/render_module/light_uniform.h"
 #include "ecsModule/transformModule/module.h"
 #include "ecsModule/windowModule/components.h"
 #include "ext/matrix_transform.hpp"
@@ -195,6 +196,11 @@ void render(flecs::iter& it) {
 				.delta_time = it.delta_time(),
 			};
 
+			world.each([&default_uniform](Light& light, GlobalTransform& transform) {
+				default_uniform.light_position = glm::vec4(transform.translation, 0.f);
+				default_uniform.light_color = light.color;
+			});
+
 			for (const auto& phase : render_phases) {
 				auto phase_entity = world.entity(phase);
 				auto& render_phase = phase_entity.get_mut<RenderPhase>();
@@ -247,6 +253,13 @@ RenderModule::RenderModule(flecs::world& world) {
 
 	world.component<DefaultUniform>();
 	world.component<PhaseContext>();
+	world.component<Light>()
+		.member(&Light::color, "color");
+	world.component<PhongMaterial>()
+		.member(&PhongMaterial::ambient, "ambient")
+		.member(&PhongMaterial::diffuse, "diffuse")
+		.member(&PhongMaterial::specular, "specular")
+		.member(&PhongMaterial::shininess, "shininess");
 	world.component<Material>()
 		.add(flecs::OnInstantiate, flecs::Inherit);
 	world.component<RenderPhase>();

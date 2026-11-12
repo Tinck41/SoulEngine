@@ -83,6 +83,7 @@ add_library(${PROJECT_NAME} STATIC
 	#src/ecsModule/sceneModule/module.cpp
 	#src/ecsModule/renderModule/module.h
 	#src/ecsModule/renderModule/module.cpp
+	src/ecsModule/render_module/light_uniform.h
 	src/ecsModule/render_module/material.h
 	src/ecsModule/render_module/render_phase.h
 	src/ecsModule/render_module/render_phase.cpp
