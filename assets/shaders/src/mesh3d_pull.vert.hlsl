@@ -22,6 +22,7 @@ struct Output {
 	float3 normal : TEXCOORD2;
 	float3 frag_pos : TEXCOORD3;
 	uint flags : TEXCOORD4;
+	uint id : TEXCOORD5;
 };
 
 StructuredBuffer<InstanceData> DataBuffer : register(t0, space0);
@@ -37,6 +38,7 @@ Output main(Input input, uint id : SV_InstanceID) {
 	output.normal = mul((float3x3)instance.model, input.normal);
 	output.frag_pos = mul(instance.model, float4(input.position, 1)).xyz;
 	output.flags = instance.flags;
+	output.id = id;
 
 	return output;
 }

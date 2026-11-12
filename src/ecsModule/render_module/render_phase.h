@@ -36,7 +36,8 @@ namespace se {
 	struct PhaseContext {
 		SDL_GPUBuffer* index_buffer = nullptr;
 		SDL_GPUBuffer* vertex_buffer = nullptr;
-		SDL_GPUBuffer* storage_buffer = nullptr;
+		SDL_GPUBuffer* vert_storage_buffer = nullptr;
+		SDL_GPUBuffer* frag_storage_buffer = nullptr;
 
 		size_t num_indices  = 0;
 		size_t num_vertices = 0;

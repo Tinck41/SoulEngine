@@ -13,7 +13,9 @@ namespace se {
 	};
 
 	struct Light {
-		Color color;
+		Color ambient;
+		Color diffuse;
+		Color specular;
 	};
 
 	struct RenderDevice {

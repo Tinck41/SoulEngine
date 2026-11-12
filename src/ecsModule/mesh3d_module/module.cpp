@@ -374,7 +374,7 @@ se::Material se::create_mesh3d_material(flecs::world& world) {
 //	auto vert_shader = load_shader(*device.gpu, "assets/shaders/out/mesh.vert.msl", 2);
 //	auto frag_shader = load_shader(*device.gpu, "assets/shaders/out/mesh.frag.msl", 0, 1);
 	auto vert_shader = load_shader(*device.gpu, "assets/shaders/out/mesh3d_pull.vert.msl", 1, 0, 1);
-	auto frag_shader = load_shader(*device.gpu, "assets/shaders/out/mesh3d_pull.frag.msl", 2, 1);
+	auto frag_shader = load_shader(*device.gpu, "assets/shaders/out/mesh3d_pull.frag.msl", 2, 1, 1);
 
 	SDL_GPUColorTargetDescription color_target_description{
 		.format = SDL_GetGPUSwapchainTextureFormat(device.gpu, window),
@@ -457,7 +457,7 @@ se::Material se::create_mesh3d_material(flecs::world& world) {
 		.pipeline = pipeline,
 		.sampler = sampler,
 		.vertex_uniforms = { world.id<DefaultUniform>() },
-		.fragment_uniforms = { world.id<DefaultUniform>(), world.id<PhongMaterial>() },
+		.fragment_uniforms = { world.id<DefaultUniform>(), world.id<PhongLight>() },
 	};
 }
 
@@ -474,25 +474,32 @@ se::PhaseContext se::create_mesh3d_context(flecs::world& world) {
 		.size = sizeof(int) * MESH3D_MAX_INDEX_COUNT,
 	};
 
-	SDL_GPUBufferCreateInfo storage_buffer_create_info{
+	SDL_GPUBufferCreateInfo vert_storage_buffer_create_info{
 		.usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
 		.size = static_cast<Uint32>(sizeof(Mesh3dInstance) * MESH3D_MAX_INSTANCE_COUNT),
 	};
 
+	SDL_GPUBufferCreateInfo frag_storage_buffer_create_info{
+		.usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
+		.size = static_cast<Uint32>(sizeof(PhongMaterial) * MESH3D_MAX_INSTANCE_COUNT),
+	};
+
 	SDL_GPUTransferBufferCreateInfo transfer_buffer_create_info{
 		.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-		.size = static_cast<Uint32>((sizeof(Vertex3d) * MESH3D_MAX_VERTEX_COUNT) + (sizeof(int) * MESH3D_MAX_INDEX_COUNT) + (sizeof(Mesh3dInstance) * MESH3D_MAX_INSTANCE_COUNT))
+		.size = static_cast<Uint32>((sizeof(Vertex3d) * MESH3D_MAX_VERTEX_COUNT) + (sizeof(int) * MESH3D_MAX_INDEX_COUNT) + (sizeof(Mesh3dInstance) * MESH3D_MAX_INSTANCE_COUNT) + (sizeof(PhongMaterial) * MESH3D_MAX_INSTANCE_COUNT))
 	};
 
 	auto vertex_buffer = SDL_CreateGPUBuffer(device.gpu, &vertex_buffer_create_info);
 	auto index_buffer = SDL_CreateGPUBuffer(device.gpu, &index_buffer_create_info);
-	auto storage_buffer = SDL_CreateGPUBuffer(device.gpu, &storage_buffer_create_info);
+	auto vert_storage_buffer = SDL_CreateGPUBuffer(device.gpu, &vert_storage_buffer_create_info);
+	auto frag_storage_buffer = SDL_CreateGPUBuffer(device.gpu, &frag_storage_buffer_create_info);
 	auto transfer_buffer = SDL_CreateGPUTransferBuffer(device.gpu, &transfer_buffer_create_info);
 
 	return {
 		.index_buffer = index_buffer,
 		.vertex_buffer = vertex_buffer,
-		.storage_buffer = storage_buffer,
+		.vert_storage_buffer = vert_storage_buffer,
+		.frag_storage_buffer = frag_storage_buffer,
 		.transfer_buffer = transfer_buffer,
 		.index_element_size = SDL_GPU_INDEXELEMENTSIZE_32BIT,
 	};
@@ -505,6 +512,7 @@ se::RenderPhaseExtractor se::create_mesh3d_extractor(flecs::world& world, flecs:
 		.with<const Mesh3dGpu>()
 		.with<const GlobalTransform>()
 		.with<const Material>()
+		.with<const PhongMaterial>()
 		.group_by<Mesh3dGpu>(group_by_relation)
 		.with<ExtractedMeshes3d>().src("$helper").inout()
 		.with<RenderPhase>().src("$phase_entity").inout()
@@ -522,9 +530,10 @@ se::RenderPhaseExtractor se::create_mesh3d_extractor(flecs::world& world, flecs:
 				auto mesh_gpu_field = it.field<const Mesh3dGpu>(1);
 				auto transform_field = it.field<const GlobalTransform>(2);
 				auto material_field = it.field<const Material>(3);
+				auto phong_material_field = it.field<const PhongMaterial>(4);
 
-				auto& extracted_meshes = it.field<ExtractedMeshes3d>(4)[0];
-				auto& render_phase = it.field<RenderPhase>(5)[0];
+				auto& extracted_meshes = it.field<ExtractedMeshes3d>(5)[0];
+				auto& render_phase = it.field<RenderPhase>(6)[0];
 				//auto& camera_aabb = it.field<Aabb>(11)[0];
 
 				for (auto i : it) {
@@ -538,6 +547,7 @@ se::RenderPhaseExtractor se::create_mesh3d_extractor(flecs::world& world, flecs:
 					const auto& mesh_gpu = mesh_gpu_field[0];
 					const auto& transform = transform_field[i];
 					const auto& material = material_field[0];
+					const auto& phong_material = phong_material_field[0];
 
 					render_phase.items.push_back({
 						.entity = entity,
@@ -558,7 +568,8 @@ se::RenderPhaseExtractor se::create_mesh3d_extractor(flecs::world& world, flecs:
 						.indices_size = mesh.indices_size,
 						.texture = mesh.texture ? &mesh.texture->get_gpu_texture() : nullptr,
 						.transform = transform.matrix,
-						.color = mesh.color
+						.color = mesh.color,
+						.material = phong_material,
 					});
 				}
 			}
@@ -581,6 +592,7 @@ se::RenderPhaseUploader se::create_mesh3d_uploader() {
 			auto vertices = static_cast<Vertex3d*>(transfer_buffer);
 			auto indices = reinterpret_cast<int*>(vertices + MESH3D_MAX_VERTEX_COUNT);
 			auto instances = reinterpret_cast<Mesh3dInstance*>(indices + MESH3D_MAX_INDEX_COUNT);
+			auto materials = reinterpret_cast<PhongMaterial*>(instances + extracted_meshes.size());
 
 			uint32_t vertex_count = 0;
 			uint32_t index_count  = 0;
@@ -635,6 +647,8 @@ se::RenderPhaseUploader se::create_mesh3d_uploader() {
 				instances[instances_index].flags |= static_cast<uint32_t>((bool)mesh.texture ? Mesh3dShaderFlags::Textured : Mesh3dShaderFlags::None);
 				instances[instances_index].model = mesh.transform;
 
+				materials[instances_index] = mesh.material;
+
 				++instances_index;
 			}
 
@@ -651,12 +665,24 @@ se::RenderPhaseUploader se::create_mesh3d_uploader() {
 				.offset = static_cast<Uint32>(sizeof(Vertex3d) * MESH3D_MAX_VERTEX_COUNT + sizeof(int) * MESH3D_MAX_INDEX_COUNT)
 			};
 			SDL_GPUBufferRegion instances_buffer_region {
-				.buffer = context.storage_buffer,
+				.buffer = context.vert_storage_buffer,
 				.offset = 0,
 				.size = static_cast<Uint32>(sizeof(Mesh3dInstance) * instances_index)
 			};
 
 			SDL_UploadToGPUBuffer(copy_pass, &instances_transfer_buffer_location, &instances_buffer_region, false);
+
+			SDL_GPUTransferBufferLocation materials_transfer_buffer_location {
+				.transfer_buffer = context.transfer_buffer,
+				.offset = static_cast<Uint32>(sizeof(Vertex3d) * MESH3D_MAX_VERTEX_COUNT + sizeof(int) * MESH3D_MAX_INDEX_COUNT + sizeof(Mesh3dInstance) * instances_index)
+			};
+			SDL_GPUBufferRegion materials_buffer_region {
+				.buffer = context.frag_storage_buffer,
+				.offset = 0,
+				.size = static_cast<Uint32>(sizeof(PhongMaterial) * instances_index)
+			};
+
+			SDL_UploadToGPUBuffer(copy_pass, &materials_transfer_buffer_location, &materials_buffer_region, false);
 
 			if (upload_vertex_count == 0 || upload_index_count == 0) {
 				return;

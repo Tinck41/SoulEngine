@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ecsModule/mesh3d_module/components.h"
+#include "ecsModule/render_module/light_uniform.h"
 #include "ecsModule/render_module/render_phase.h"
 #include "ecsModule/render_module/material.h"
 
@@ -24,12 +25,14 @@ namespace se {
 
 		glm::mat4 transform;
 		Color color;
+
+		PhongMaterial material;
 	};
 
 	struct Mesh3dInstance {
 		glm::mat4 model;
 		uint32_t flags = 0;
-	    uint32_t padding[3];
+		uint32_t padding[3];
 	};
 
 	using ExtractedMeshes3d = std::vector<ExtractedMesh3d>;

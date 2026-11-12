@@ -196,11 +196,6 @@ void render(flecs::iter& it) {
 				.delta_time = it.delta_time(),
 			};
 
-			world.each([&default_uniform](Light& light, GlobalTransform& transform) {
-				default_uniform.light_position = glm::vec4(transform.translation, 0.f);
-				default_uniform.light_color = light.color;
-			});
-
 			for (const auto& phase : render_phases) {
 				auto phase_entity = world.entity(phase);
 				auto& render_phase = phase_entity.get_mut<RenderPhase>();
@@ -254,12 +249,15 @@ RenderModule::RenderModule(flecs::world& world) {
 	world.component<DefaultUniform>();
 	world.component<PhaseContext>();
 	world.component<Light>()
-		.member(&Light::color, "color");
+		.member(&Light::ambient, "ambient")
+		.member(&Light::diffuse, "diffuse")
+		.member(&Light::specular, "specular");
 	world.component<PhongMaterial>()
 		.member(&PhongMaterial::ambient, "ambient")
 		.member(&PhongMaterial::diffuse, "diffuse")
 		.member(&PhongMaterial::specular, "specular")
-		.member(&PhongMaterial::shininess, "shininess");
+		.member(&PhongMaterial::shininess, "shininess")
+		.add(flecs::OnInstantiate, flecs::Inherit);
 	world.component<Material>()
 		.add(flecs::OnInstantiate, flecs::Inherit);
 	world.component<RenderPhase>();
@@ -335,6 +333,7 @@ RenderPhaseRenderer se::create_default_renderer() {
 			auto* white_texture = &world.get<WhiteTexture>().texture->get_gpu_texture();
 			auto& phase_items = renderer.get_mut<RenderPhase>().items;
 			const auto default_uniform_id = world.id<DefaultUniform>();
+			const auto light_uniform_id = world.id<PhongLight>();
 
 			auto& stats = world.get_mut<RenderStats>();
 
@@ -345,6 +344,16 @@ RenderPhaseRenderer se::create_default_renderer() {
 
 			const PhaseContext* context = nullptr;
 			const Material* material = nullptr;
+
+			auto light_uniform = PhongLight{};
+
+			// TEMP: Assume we have only one, global light source
+			world.each([&light_uniform](Light& light, GlobalTransform& transform) {
+				light_uniform.position = glm::vec4(transform.translation, 0.f);
+				light_uniform.ambient = light.ambient;
+				light_uniform.diffuse = light.diffuse;
+				light_uniform.specular = light.specular;
+			});
 
 			for (size_t i = 0; i < phase_items.size();) {
 				bool indexed = false;
@@ -398,8 +407,12 @@ RenderPhaseRenderer se::create_default_renderer() {
 						indexed = true;
 					}
 
-					if (context->storage_buffer) {
-						SDL_BindGPUVertexStorageBuffers(render_pass, 0, &context->storage_buffer, 1);
+					if (context->vert_storage_buffer) {
+						SDL_BindGPUVertexStorageBuffers(render_pass, 0, &context->vert_storage_buffer, 1);
+					}
+
+					if (context->frag_storage_buffer) {
+						SDL_BindGPUFragmentStorageBuffers(render_pass, 0, &context->frag_storage_buffer, 1);
 					}
 				}
 
@@ -432,6 +445,9 @@ RenderPhaseRenderer se::create_default_renderer() {
 
 						if (uniform_id == default_uniform_id) {
 							SDL_PushGPUFragmentUniformData(cmd_buffer, j, &default_uniform, sizeof(default_uniform));
+						}
+						else if (uniform_id == light_uniform_id) {
+							SDL_PushGPUFragmentUniformData(cmd_buffer, j, &light_uniform, sizeof(light_uniform));
 						}
 						else {
 							const auto& entity = world.entity(item.entity);
