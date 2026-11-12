@@ -414,29 +414,29 @@ RenderPhaseRenderer se::create_default_renderer() {
 					SDL_BindGPUGraphicsPipeline(render_pass, material->pipeline);
 					SDL_BindGPUFragmentSamplers(render_pass, 0, &texture_sampler_binding, 1);
 
-					for (size_t i = 0; i < material->vertex_uniforms.size(); ++i) {
-						const auto& uniform_id = material->vertex_uniforms[i];
+					for (size_t j = 0; j < material->vertex_uniforms.size(); ++j) {
+						const auto& uniform_id = material->vertex_uniforms[j];
 
 						if (uniform_id == default_uniform_id) {
-							SDL_PushGPUVertexUniformData(cmd_buffer, i, &default_uniform, sizeof(default_uniform));
+							SDL_PushGPUVertexUniformData(cmd_buffer, j, &default_uniform, sizeof(default_uniform));
 						}
 						else {
 							const auto& entity = world.entity(item.entity);
 
-							SDL_PushGPUVertexUniformData(cmd_buffer, i, entity.get(uniform_id), world.type_info(uniform_id)->size);
+							SDL_PushGPUVertexUniformData(cmd_buffer, j, entity.get(uniform_id), world.type_info(uniform_id)->size);
 						}
 					}
 
-					for (size_t i = 0; i < material->fragment_uniforms.size(); ++i) {
-						const auto& uniform_id = material->fragment_uniforms[i];
+					for (size_t j = 0; j < material->fragment_uniforms.size(); ++j) {
+						const auto& uniform_id = material->fragment_uniforms[j];
 
 						if (uniform_id == default_uniform_id) {
-							SDL_PushGPUFragmentUniformData(cmd_buffer, i, &default_uniform, sizeof(default_uniform));
+							SDL_PushGPUFragmentUniformData(cmd_buffer, j, &default_uniform, sizeof(default_uniform));
 						}
 						else {
 							const auto& entity = world.entity(item.entity);
 
-							SDL_PushGPUFragmentUniformData(cmd_buffer, i, entity.get(uniform_id), world.type_info(uniform_id)->size);
+							SDL_PushGPUFragmentUniformData(cmd_buffer, j, entity.get(uniform_id), world.type_info(uniform_id)->size);
 						}
 					}
 				}
