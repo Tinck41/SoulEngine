@@ -563,7 +563,7 @@ RenderPhaseUploader se::create_node_uploader_new() {
 			};
 
 			const auto buffer_region = SDL_GPUBufferRegion{
-				.buffer = context.storage_buffer,
+				.buffer = context.vert_storage_buffer,
 				.offset = 0,
 				.size = static_cast<Uint32>(current_instance * sizeof(UiVertexNew))
 			};
