@@ -253,9 +253,6 @@ RenderModule::RenderModule(flecs::world& world) {
 		.member(&Light::diffuse, "diffuse")
 		.member(&Light::specular, "specular");
 	world.component<PhongMaterial>()
-		.member(&PhongMaterial::ambient, "ambient")
-		.member(&PhongMaterial::diffuse, "diffuse")
-		.member(&PhongMaterial::specular, "specular")
 		.member(&PhongMaterial::shininess, "shininess")
 		.add(flecs::OnInstantiate, flecs::Inherit);
 	world.component<Material>()
@@ -419,13 +416,18 @@ RenderPhaseRenderer se::create_default_renderer() {
 				if (item.material_id != last_material) {
 					material = &world.entity(item.material_id).get<Material>();
 
-					SDL_GPUTextureSamplerBinding texture_sampler_binding{
-						.texture = item.texture ? item.texture : white_texture,
-						.sampler = material->sampler,
-					};
-
 					SDL_BindGPUGraphicsPipeline(render_pass, material->pipeline);
-					SDL_BindGPUFragmentSamplers(render_pass, 0, &texture_sampler_binding, 1);
+
+					std::vector<SDL_GPUTextureSamplerBinding> texture_sampler_bindings;
+
+					for (const auto& texture : item.textures) {
+						texture_sampler_bindings.push_back(SDL_GPUTextureSamplerBinding{
+							.texture = texture ? texture : white_texture,
+							.sampler = material->sampler,
+						});
+					}
+
+					SDL_BindGPUFragmentSamplers(render_pass, 0, texture_sampler_bindings.data(), texture_sampler_bindings.size());
 
 					for (size_t j = 0; j < material->vertex_uniforms.size(); ++j) {
 						const auto& uniform_id = material->vertex_uniforms[j];

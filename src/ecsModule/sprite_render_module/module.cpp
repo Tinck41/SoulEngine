@@ -269,9 +269,9 @@ RenderPhaseUploader se::create_sprite_uploader() {
 
 				render_data.num_indices = 6;
 
-				if (!phase_items[batch_index].texture || phase_items[batch_index].texture != sprite.texture || phase_items[batch_index].material_id != sprite.material_id) {
+				if (phase_items[batch_index].textures.empty() || phase_items[batch_index].textures[0] != sprite.texture || phase_items[batch_index].material_id != sprite.material_id) {
 					batch_index = i;
-					phase_items[batch_index].texture = sprite.texture;
+					phase_items[batch_index].textures.emplace_back(sprite.texture);
 					phase_items[batch_index].first_instance = current_instance;
 				}
 

@@ -51,7 +51,8 @@ Mesh3dModule::Mesh3dModule(flecs::world& world) {
 		.add(flecs::With, world.component<Mesh3dInstance>());
 	world.component<ObjAsset>()
 		.member(&ObjAsset::path, "path")
-		.member(&ObjAsset::texture_path, "texture_path")
+		.member(&ObjAsset::diffuse_map_path, "diffuse_map_path")
+		.member(&ObjAsset::specular_map_path, "specular_map_path")
 		.add(flecs::OnInstantiate, flecs::Inherit);
 	world.component<Mesh3dUniform>()
 		.member(&Mesh3dUniform::model, "model");
@@ -76,7 +77,8 @@ Mesh3dModule::Mesh3dModule(flecs::world& world) {
 			std::vector<Vertex3d> vertices;
 			std::vector<uint32_t> indices;
 
-			mesh.texture = storage.load_texture(*device.gpu, asset.texture_path);
+			mesh.diffuse_map = storage.load_texture(*device.gpu, asset.diffuse_map_path);
+			mesh.specular_map = storage.load_texture(*device.gpu, asset.specular_map_path);
 
 			tinyobj::attrib_t attrib;
 			std::vector<tinyobj::shape_t> shapes;
@@ -558,7 +560,7 @@ se::RenderPhaseExtractor se::create_mesh3d_extractor(flecs::world& world, flecs:
 						.num_indices = static_cast<uint32_t>(mesh.indices_size),
 					});
 
-					extracted_meshes.push_back({
+					auto extracted_mesh = ExtractedMesh3d{
 						.entity = entity.id(),
 						.material_id = entity.id(),
 						.group_id = group_id,
@@ -566,11 +568,20 @@ se::RenderPhaseExtractor se::create_mesh3d_extractor(flecs::world& world, flecs:
 						.indices = mesh.indices,
 						.vertices_size = mesh.vertices_size,
 						.indices_size = mesh.indices_size,
-						.texture = mesh.texture ? &mesh.texture->get_gpu_texture() : nullptr,
 						.transform = transform.matrix,
 						.color = mesh.color,
 						.material = phong_material,
-					});
+					};
+
+					if (mesh.diffuse_map) {
+						extracted_mesh.diffuse_map = &mesh.diffuse_map->get_gpu_texture();
+					}
+
+					if (mesh.specular_map) {
+						extracted_mesh.specular_map = &mesh.specular_map->get_gpu_texture();
+					}
+
+					extracted_meshes.push_back(extracted_mesh);
 				}
 			}
 		},
@@ -612,11 +623,12 @@ se::RenderPhaseUploader se::create_mesh3d_uploader() {
 				}
 
 				const auto& mesh = extracted_meshes[item.extracted_index];
+				const auto mesh_textures = std::vector{ mesh.diffuse_map, mesh.specular_map };
 
-				if (i == current_batch_index || phase_items[current_batch_index].texture != mesh.texture || phase_items[current_batch_index].sort_value != static_cast<float>(mesh.group_id)) {
+				if (i == current_batch_index || phase_items[current_batch_index].textures != mesh_textures || phase_items[current_batch_index].sort_value != static_cast<float>(mesh.group_id)) {
 					current_batch_index = i;
 
-					phase_items[current_batch_index].texture = mesh.texture;
+					phase_items[current_batch_index].textures = mesh_textures;
 					phase_items[current_batch_index].first_index = index_count;
 					phase_items[current_batch_index].num_indices = mesh.indices_size;
 					phase_items[current_batch_index].vertex_offset = index_count;
@@ -644,7 +656,7 @@ se::RenderPhaseUploader se::create_mesh3d_uploader() {
 				phase_items[current_batch_index].batch_size += 1;
 				phase_items[current_batch_index].num_instances += 1;
 
-				instances[instances_index].flags |= static_cast<uint32_t>((bool)mesh.texture ? Mesh3dShaderFlags::Textured : Mesh3dShaderFlags::None);
+				instances[instances_index].flags |= static_cast<uint32_t>(mesh.diffuse_map ? Mesh3dShaderFlags::Textured : Mesh3dShaderFlags::None);
 				instances[instances_index].model = mesh.transform;
 
 				materials[instances_index] = mesh.material;

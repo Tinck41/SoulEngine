@@ -16,7 +16,9 @@ namespace se {
 	};
 
 	struct Mesh3d {
-		std::shared_ptr<Texture> texture;
+		std::shared_ptr<Texture> diffuse_map;
+		std::shared_ptr<Texture> specular_map;
+
 		Color color;
 
 		Vertex3d* vertices = nullptr;
@@ -92,7 +94,8 @@ namespace se {
 
 	struct ObjAsset {
 		std::string path;
-		std::string texture_path;
+		std::string diffuse_map_path;
+		std::string specular_map_path;
 	};
 
 	struct Mesh3dCachedData {

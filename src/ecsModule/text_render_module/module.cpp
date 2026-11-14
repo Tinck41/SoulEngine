@@ -348,16 +348,16 @@ RenderPhaseUploader se::create_text_uploader() {
 					continue;
 				}
 
-				if (!phase_items[batch_index].texture || phase_items[batch_index].texture != seq->atlas_texture) {
+				if (phase_items[batch_index].textures.empty() || phase_items[batch_index].textures[0] != seq->atlas_texture) {
 					batch_index = i;
 
-					data.texture = seq->atlas_texture;
+					data.textures.emplace_back(seq->atlas_texture);
 					data.num_instances = 1;
 					data.first_index = index_count;
 				}
 
 				while (seq) {
-					if (seq->atlas_texture != phase_items[batch_index].texture) {
+					if (seq->atlas_texture != phase_items[batch_index].textures[0]) {
 						batch_index = i + 1;
 
 						break;

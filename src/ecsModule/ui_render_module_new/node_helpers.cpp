@@ -516,10 +516,10 @@ RenderPhaseUploader se::create_node_uploader_new() {
 
 				const auto& ui_node = extracted_nodes[data.extracted_index];
 
-				if (phase_items[current_batch_index].num_instances == 0 || phase_items[current_batch_index].texture != ui_node.texture || phase_items[current_batch_index].scissor != ui_node.scissor) {
+				if (phase_items[current_batch_index].num_instances == 0 || phase_items[current_batch_index].textures[0] != ui_node.texture || phase_items[current_batch_index].scissor != ui_node.scissor) {
 					current_batch_index = i;
 
-					phase_items[current_batch_index].texture = ui_node.texture;
+					phase_items[current_batch_index].textures.emplace_back(ui_node.texture);
 					phase_items[current_batch_index].num_instances = 1;
 					phase_items[current_batch_index].vertex_offset = current_instance * 6;
 				}
@@ -597,11 +597,11 @@ RenderPhaseUploader se::create_node_uploader() {
 
 				const auto& ui_node = extracted_nodes[data.extracted_index];
 
-				if ((!phase_items[current_batch_index].texture && ui_node.texture) || (phase_items[current_batch_index].texture && !ui_node.texture) || phase_items[current_batch_index].texture != ui_node.texture) {
+				if ((phase_items[current_batch_index].textures.empty() && ui_node.texture) || (phase_items[current_batch_index].textures[0] && !ui_node.texture) || phase_items[current_batch_index].textures[0] != ui_node.texture) {
 					current_batch_index = i;
 
 					phase_items[current_batch_index].first_index = current_vertex / 4 * 6;
-					phase_items[current_batch_index].texture = ui_node.texture;
+					phase_items[current_batch_index].textures.emplace_back(ui_node.texture);
 				}
 
 				const auto pos = ui_node.translation;

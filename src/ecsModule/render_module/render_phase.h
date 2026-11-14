@@ -59,7 +59,7 @@ namespace se {
 
 		std::optional<RectI> scissor;
 
-		SDL_GPUTexture* texture = nullptr;
+		std::vector<SDL_GPUTexture*> textures;
 
 		std::uint32_t num_indices = 0;
 		std::uint32_t num_instances = 0;

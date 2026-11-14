@@ -21,7 +21,8 @@ namespace se {
 		size_t vertices_size = 0;
 		size_t indices_size = 0;
 
-		SDL_GPUTexture* texture;
+		SDL_GPUTexture* diffuse_map = nullptr;
+		SDL_GPUTexture* specular_map = nullptr;
 
 		glm::mat4 transform;
 		Color color;

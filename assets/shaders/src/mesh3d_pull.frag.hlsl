@@ -12,9 +12,6 @@ cbuffer Light : register(b1, space3) {
 }
 
 struct Material {
-	float4 ambient;
-	float4 diffuse;
-	float4 specular;
 	float shininess;
 };
 
@@ -27,8 +24,9 @@ struct Input {
 	uint id : TEXCOORD5;
 };
 
-Texture2D<float4> tex : register(t0, space2);
-StructuredBuffer<Material> MaterialBuffer : register(t1, space2);
+Texture2D<float4> diffuse_map : register(t0, space2);
+Texture2D<float4> specular_map : register(t1, space2);
+StructuredBuffer<Material> MaterialBuffer : register(t2, space2);
 SamplerState smp : register(s0, space2);
 
 static const uint TEXTURED = 1u << 0;
@@ -36,22 +34,22 @@ static const uint TEXTURED = 1u << 0;
 float4 main(Input input) : SV_Target0 {
 	Material material = MaterialBuffer[input.id];
 
-	float3 ambient = light_ambient.rgb * material.ambient.rgb;
+	float3 ambient = light_ambient.rgb * diffuse_map.Sample(smp, input.uv).rgb;
 
 	float3 norm = normalize(input.normal);
 	float3 light_dir = normalize(light_position.xyz - input.frag_pos);
 	float diff = max(dot(norm, light_dir), 0);
-	float3 diffuse = light_diffuse.rgb * (diff * material.diffuse.rgb);
+	float3 diffuse = light_diffuse.rgb * (diff * diffuse_map.Sample(smp, input.uv).rgb);
 
 	float3 view_direction = normalize(view_position - input.frag_pos);
 	float3 reflect_direction = reflect(-light_dir, norm);
 	float spec = pow(max(dot(view_direction, reflect_direction), 0), material.shininess);
-	float3 specular = light_specular.rgb * (spec * material.specular.rgb);
+	float3 specular = light_specular.rgb * (spec * specular_map.Sample(smp, input.uv).rgb);
 
 	float3 result = ambient + diffuse + specular;
 
 	if (input.flags & TEXTURED) {
-		return tex.Sample(smp, input.uv) * input.color * float4(result, 1);
+		return diffuse_map.Sample(smp, input.uv) * input.color * float4(result, 1);
 	}
 
 	return input.color * float4(result, 1.0);
